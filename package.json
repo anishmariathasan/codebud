@@ -1,0 +1,20 @@
+{
+  "name": "codebud",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CodeBud - AI Voice Pair Programmer monorepo",
+  "scripts": {
+    "setup": "cd extension && npm install && cd ../voice-ui && npm install",
+    "ui": "cd voice-ui && npm run dev",
+    "ext:compile": "cd extension && npm run compile",
+    "ext:watch": "cd extension && npm run watch"
+  },
+  "keywords": [
+    "vscode",
+    "ai",
+    "pair-programming",
+    "voice"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,66 @@
+{
+    "name": "codebud",
+    "displayName": "CodeBud - AI Voice Pair Programmer",
+    "description": "An AI-powered voice pair programming assistant for VS Code",
+    "version": "0.1.0",
+    "publisher": "codebud",
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "Other"
+    ],
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "main": "./out/extension.js",
+    "contributes": {
+        "commands": [
+            {
+                "command": "codebud.openUI",
+                "title": "CodeBud: Open Voice UI"
+            },
+            {
+                "command": "codebud.toggleMode",
+                "title": "CodeBud: Toggle Driver/Navigator Mode"
+            },
+            {
+                "command": "codebud.setNavigator",
+                "title": "CodeBud: Switch to Navigator Mode"
+            },
+            {
+                "command": "codebud.setDriver",
+                "title": "CodeBud: Switch to Driver Mode"
+            }
+        ],
+        "keybindings": [
+            {
+                "command": "codebud.openUI",
+                "key": "ctrl+shift+b",
+                "mac": "cmd+shift+b"
+            },
+            {
+                "command": "codebud.toggleMode",
+                "key": "ctrl+shift+m",
+                "mac": "cmd+shift+m"
+            }
+        ]
+    },
+    "scripts": {
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile",
+        "lint": "eslint src --ext ts"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^4.18.2"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/node": "^20.10.0",
+        "@types/vscode": "^1.85.0",
+        "typescript": "^5.3.0"
+    }
+}
