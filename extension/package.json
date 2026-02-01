@@ -84,8 +84,9 @@
     },
     "scripts": {
         "vscode:prepublish": "npm run compile",
-        "compile": "node esbuild.js --production",
-        "watch": "node esbuild.js --watch",
+        "build-ui": "node build-ui.js",
+        "compile": "npm run build-ui && node esbuild.js --production",
+        "watch": "npm run build-ui && node esbuild.js --watch",
         "pretest": "npm run compile",
         "lint": "eslint src --ext ts",
         "package": "npm run compile && npx vsce package --no-dependencies",

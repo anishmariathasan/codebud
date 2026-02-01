@@ -4,6 +4,19 @@
 
 import React, { useRef, useEffect } from 'react';
 
+// Pale color palette
+const colors = {
+    background: '#f8fafc',
+    card: '#ffffff',
+    cardBorder: '#e2e8f0',
+    text: '#1e293b',
+    textMuted: '#64748b',
+    user: '#10b981',         // Emerald
+    userLight: '#ecfdf5',
+    assistant: '#6366f1',    // Indigo
+    assistantLight: '#eef2ff',
+};
+
 export interface TranscriptEntry {
     role: 'user' | 'assistant';
     text: string;
@@ -25,16 +38,14 @@ export const Transcript: React.FC<TranscriptProps> = ({ entries }) => {
     }, [entries]);
 
     const containerStyle: React.CSSProperties = {
-        backgroundColor: '#161b22',
-        borderRadius: '12px',
+        backgroundColor: colors.card,
         padding: '16px',
-        maxHeight: '300px',
+        minHeight: '250px',
         overflowY: 'auto',
-        border: '1px solid #30363d',
     };
 
     const emptyStyle: React.CSSProperties = {
-        color: '#8b949e',
+        color: colors.textMuted,
         textAlign: 'center',
         padding: '40px 20px',
         fontSize: '14px',
@@ -44,8 +55,8 @@ export const Transcript: React.FC<TranscriptProps> = ({ entries }) => {
         marginBottom: '12px',
         padding: '12px 16px',
         borderRadius: '12px',
-        backgroundColor: role === 'user' ? 'rgba(63, 185, 80, 0.1)' : 'rgba(88, 166, 255, 0.1)',
-        borderLeft: `3px solid ${role === 'user' ? '#3fb950' : '#58a6ff'}`,
+        backgroundColor: role === 'user' ? colors.userLight : colors.assistantLight,
+        borderLeft: `3px solid ${role === 'user' ? colors.user : colors.assistant}`,
     });
 
     const headerStyle: React.CSSProperties = {
@@ -60,18 +71,18 @@ export const Transcript: React.FC<TranscriptProps> = ({ entries }) => {
         fontWeight: 600,
         textTransform: 'uppercase',
         letterSpacing: '0.5px',
-        color: role === 'user' ? '#3fb950' : '#58a6ff',
+        color: role === 'user' ? colors.user : colors.assistant,
     });
 
     const timeStyle: React.CSSProperties = {
         fontSize: '11px',
-        color: '#8b949e',
+        color: colors.textMuted,
     };
 
     const textStyle: React.CSSProperties = {
         fontSize: '14px',
         lineHeight: 1.6,
-        color: '#e6edf3',
+        color: colors.text,
         whiteSpace: 'pre-wrap',
         wordBreak: 'break-word',
     };
