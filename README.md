@@ -22,6 +22,22 @@ npm run package
 # Creates: extension/codebud-0.1.0.vsix
 ```
 
+### Install VSIX Package
+
+**Option 1: Command Line**
+```bash
+code --install-extension extension/codebud-0.1.0.vsix
+```
+
+**Option 2: VS Code GUI**
+1. Open VS Code
+2. Go to Extensions view (`Ctrl+Shift+X`)
+3. Click the `...` menu (top-right of Extensions panel)
+4. Select **Install from VSIX...**
+5. Navigate to `extension/codebud-0.1.0.vsix` and select it
+
+After installation, reload VS Code when prompted.
+
 ## File Structure
 
 ```
