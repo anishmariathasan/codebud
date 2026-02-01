@@ -1,15 +1,14 @@
 {
     "name": "codebud",
     "displayName": "CodeBud - AI Voice Pair Programmer",
-    "description": "An AI-powered voice pair programming assistant for VS Code",
+    "description": "Voice AI-powered pair programmer for VS Code",
     "version": "0.1.0",
     "publisher": "codebud",
-    "license": "MIT",
+    "license": "",
     "repository": {
         "type": "git",
-        "url": "https://github.com/your-username/codebud"
+        "url": "https://github.com/anishmariathasan/codebud"
     },
-    "icon": "media/icon.png",
     "engines": {
         "vscode": "^1.85.0"
     },
