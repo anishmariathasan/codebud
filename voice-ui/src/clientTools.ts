@@ -74,6 +74,26 @@ export function createClientTools(callbacks?: ClientToolCallbacks) {
         },
 
         /**
+         * Replace code at a specific line (for corrections)
+         * Replaces the existing line with new code. Only works in driver mode.
+         */
+        replace_code_line: async (params: { line: number; code: string }): Promise<string> => {
+            callbacks?.onToolCall?.('replace_code_line');
+            try {
+                const { line, code } = params;
+                // Replace just that single line (startLine = endLine = line)
+                const result = await api.replaceCode(line, line, code);
+                return JSON.stringify(result);
+            } catch (error) {
+                const message = error instanceof Error ? error.message : 'Unknown error';
+                return JSON.stringify({
+                    success: false,
+                    error: `Failed to replace code: ${message}`,
+                });
+            }
+        },
+
+        /**
          * Switch between driver and navigator modes
          */
         switch_mode: async (params: SwitchModeParams): Promise<string> => {

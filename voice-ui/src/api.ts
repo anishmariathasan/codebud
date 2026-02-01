@@ -87,6 +87,35 @@ export async function insertCode(
 }
 
 /**
+ * Replace code at a specific line range (for corrections)
+ */
+export async function replaceCode(
+    startLine: number,
+    endLine: number,
+    code: string
+): Promise<InsertCodeResponse> {
+    if (USE_MOCK) {
+        // Mock just returns success
+        return { success: true };
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/api/replace`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ startLine, endLine, code }),
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to replace code:', error);
+        throw error;
+    }
+}
+
+/**
  * Switch driver/navigator mode
  */
 export async function switchMode(
