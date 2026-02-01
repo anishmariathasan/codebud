@@ -34,12 +34,23 @@ export class EditorActions {
                 };
             }
 
+            // Auto-indentation logic
+            const currentLineText = editor.document.lineAt(zeroIndexedLine).text;
+            const indentationMatch = currentLineText.match(/^\s*/);
+            const indentation = indentationMatch ? indentationMatch[0] : '';
+
+            // Apply indentation to all lines of the inserted code
+            const indentedCode = code.split('\n').map((l, i) => i === 0 ? l : indentation + l).join('\n');
+
             // Create position at the start of the specified line
+            // We usually insert AFTER the specified line to avoid messing up the current line context? 
+            // The request implies "insert at line", usually meaning pushing that line down or inserting content there.
+            // Let's assume inserting new content that pushes everything down.
             const position = new vscode.Position(zeroIndexedLine, 0);
 
             // Insert the code with a newline
             const success = await editor.edit((editBuilder) => {
-                editBuilder.insert(position, code + '\n');
+                editBuilder.insert(position, indentation + indentedCode + '\n');
             });
 
             if (success) {
@@ -49,6 +60,57 @@ export class EditorActions {
             } else {
                 return { success: false, error: 'Edit operation failed' };
             }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            return { success: false, error: errorMessage };
+        }
+    }
+
+    /**
+     * Replace a range of lines with new code
+     * @param startLine Start line (1-indexed)
+     * @param endLine End line (1-indexed, inclusive)
+     * @param code New code
+     */
+    async replaceCode(startLine: number, endLine: number, code: string): Promise<InsertCodeResponse> {
+        try {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                return { success: false, error: 'No active editor' };
+            }
+
+            const zeroStartLine = startLine - 1;
+            const zeroEndLine = endLine - 1;
+
+            if (zeroStartLine < 0 || zeroEndLine >= editor.document.lineCount || zeroStartLine > zeroEndLine) {
+                return {
+                    success: false,
+                    error: `Invalid range: ${startLine}-${endLine}.`
+                };
+            }
+
+            const range = new vscode.Range(
+                new vscode.Position(zeroStartLine, 0),
+                new vscode.Position(zeroEndLine, editor.document.lineAt(zeroEndLine).text.length)
+            );
+
+            // Auto-indentation (match start line)
+            const firstLineText = editor.document.lineAt(zeroStartLine).text;
+            const indentationMatch = firstLineText.match(/^\s*/);
+            const indentation = indentationMatch ? indentationMatch[0] : '';
+            const indentedCode = code.split('\n').map((l, i) => i === 0 ? l : indentation + l).join('\n');
+
+            const success = await editor.edit(editBuilder => {
+                editBuilder.replace(range, indentation + indentedCode);
+            });
+
+            if (success) {
+                await this.highlightLine(startLine, 2000);
+                return { success: true };
+            } else {
+                return { success: false, error: 'Replace operation failed' };
+            }
+
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Unknown error';
             return { success: false, error: errorMessage };

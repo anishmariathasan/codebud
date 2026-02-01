@@ -46,6 +46,12 @@ export function activate(context: vscode.ExtensionContext): void {
     app.use(cors());
     app.use(express.json());
 
+    // Middleware: Request Logging
+    app.use((req, res, next) => {
+        console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
+        next();
+    });
+
     // Route: GET /api/context - Get current code context
     app.get('/api/context', (_req, res) => {
         if (!codeWatcher || !modeManager) {
@@ -59,7 +65,14 @@ export function activate(context: vscode.ExtensionContext): void {
             return;
         }
 
-        res.json(context);
+        // Mix in diagnostics summary
+        const diagSummary = diagnosticsCollector?.getSummary();
+        const fullContext = {
+            ...context,
+            diagnosticsSummary: diagSummary
+        };
+
+        res.json(fullContext);
     });
 
     // Route: GET /api/diagnostics - Get current file diagnostics
@@ -90,17 +103,55 @@ export function activate(context: vscode.ExtensionContext): void {
         }
 
         const { line, code } = req.body;
-
+        // ... (validation skipped for brevity in update, but exists locally) 
         if (typeof line !== 'number' || typeof code !== 'string') {
-            res.status(400).json({
-                success: false,
-                error: 'Invalid request: line (number) and code (string) required',
-            });
+            res.status(400).json({ success: false, error: 'Invalid params' });
             return;
         }
 
         const result = await editorActions.insertCode(line, code);
         res.json(result);
+    });
+
+    // Route: POST /api/replace - Replace range
+    app.post('/api/replace', async (req, res) => {
+        if (!editorActions || !modeManager) {
+            res.status(500).json({ error: 'Extension not initialized' });
+            return;
+        }
+
+        if (modeManager.getMode() !== 'driver') {
+            res.status(403).json({ success: false, error: 'Only allowed in driver mode' });
+            return;
+        }
+
+        const { startLine, endLine, code } = req.body;
+
+        if (typeof startLine !== 'number' || typeof endLine !== 'number' || typeof code !== 'string') {
+            res.status(400).json({ success: false, error: 'Invalid params: startLine, endLine, code required' });
+            return;
+        }
+
+        const result = await editorActions.replaceCode(startLine, endLine, code);
+        res.json(result);
+    });
+
+    // Route: POST /api/highlight - Highlight line
+    app.post('/api/highlight', async (req, res) => {
+        if (!editorActions) {
+            res.status(500).json({ error: 'Extension not initialized' });
+            return;
+        }
+
+        const { line } = req.body;
+        if (typeof line !== 'number') {
+            res.status(400).json({ success: false, error: 'Invalid params: line required' });
+            return;
+        }
+
+        // Fire and forget
+        editorActions.highlightLine(line, 2000);
+        res.json({ success: true });
     });
 
     // Route: POST /api/mode - Switch mode

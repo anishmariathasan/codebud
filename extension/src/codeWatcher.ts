@@ -4,6 +4,18 @@ import * as vscode from 'vscode';
  * CodeWatcher - Monitors document changes and provides code context
  * Tracks typing state for continuous code monitoring
  */
+export interface ChangeContext {
+    text: string;
+    line: number;
+    timestamp: number;
+}
+
+export interface FileStructureItem {
+    name: string;
+    line: number;
+    type: 'function' | 'class' | 'variable';
+}
+
 export class CodeWatcher {
     private recentChanges: string[] = [];
     private changesSinceLastPoll: string[] = [];
@@ -17,7 +29,6 @@ export class CodeWatcher {
     private readonly TYPING_TIMEOUT_MS = 3000; // Consider stopped typing after 3s
 
     constructor() {
-        // Listen to document changes
         this.disposables.push(
             vscode.workspace.onDidChangeTextDocument((event) => {
                 this.handleDocumentChange(event);
@@ -26,7 +37,6 @@ export class CodeWatcher {
     }
 
     private handleDocumentChange(event: vscode.TextDocumentChangeEvent): void {
-        // Only track changes in the active editor
         const activeEditor = vscode.window.activeTextEditor;
         if (!activeEditor || event.document !== activeEditor.document) {
             return;
@@ -60,10 +70,7 @@ export class CodeWatcher {
         }
     }
 
-    /**
-     * Get the most recent N changes
-     */
-    getRecentChanges(n: number = 5): string[] {
+    getRecentChangesWithContext(n: number = 5): ChangeContext[] {
         return this.recentChanges.slice(-n);
     }
 
@@ -106,14 +113,22 @@ export class CodeWatcher {
         const fileName = document.fileName;
         const language = document.languageId;
         const fileContent = document.getText();
-        const cursorLine = position.line + 1; // 1-indexed
-        const totalLines = document.lineCount;
 
-        // Get selected text if any
+        // Truncate large files for context window (Phase 4)
+        let truncatedContent = fileContent;
+        const maxLines = 500;
+        const totalLines = document.lineCount; // Define totalLines here
+        if (totalLines > maxLines) {
+            const lines = fileContent.split('\n');
+            truncatedContent = lines.slice(0, maxLines).join('\n') + `\n... (truncated ${totalLines - maxLines} lines)`;
+        }
+
+        const cursorLine = position.line + 1;
+        // const totalLinesResult = document.lineCount; // This line is removed as totalLines is already defined
+
         const selection = editor.selection;
         const selectedText = selection.isEmpty ? null : document.getText(selection);
 
-        // Get surrounding 20 lines (10 before, 10 after cursor)
         const startLine = Math.max(0, position.line - 10);
         const endLine = Math.min(document.lineCount - 1, position.line + 10);
         const surroundingRange = new vscode.Range(
@@ -132,7 +147,8 @@ export class CodeWatcher {
             mode: currentMode,
             fileName: fileName.split(/[/\\]/).pop() || fileName,
             language,
-            fileContent,
+            fileContent: truncatedContent,
+            fileStructure: this.getFileStructure(fileContent),
             surroundingCode,
             cursorLine,
             totalLines,
@@ -147,9 +163,6 @@ export class CodeWatcher {
         };
     }
 
-    /**
-     * Clean up resources
-     */
     dispose(): void {
         if (this.typingTimeout) {
             clearTimeout(this.typingTimeout);

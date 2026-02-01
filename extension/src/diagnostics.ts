@@ -36,8 +36,9 @@ export class DiagnosticsCollector {
 
     /**
      * Get diagnostics for the active editor
+     * optional minSeverity: filter by severity level
      */
-    getDiagnostics(): DiagnosticsResponse {
+    getDiagnostics(minSeverity?: 'error' | 'warning'): DiagnosticsResponse {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             return { errors: [] };
@@ -46,7 +47,7 @@ export class DiagnosticsCollector {
         const uri = editor.document.uri;
         const diagnostics = vscode.languages.getDiagnostics(uri);
 
-        const errors: Diagnostic[] = diagnostics.map((diag) => ({
+        let errors: Diagnostic[] = diagnostics.map((diag) => ({
             line: diag.range.start.line + 1, // 1-indexed
             endLine: diag.range.end.line + 1, // 1-indexed
             message: diag.message,
@@ -54,6 +55,28 @@ export class DiagnosticsCollector {
             source: diag.source || 'unknown',
         }));
 
+        if (minSeverity) {
+            errors = errors.filter(e => {
+                if (minSeverity === 'error') return e.severity === 'error';
+                if (minSeverity === 'warning') return e.severity === 'error' || e.severity === 'warning';
+                return true;
+            });
+        }
+
         return { errors };
+    }
+
+    getSummary(): string {
+        const { errors } = this.getDiagnostics();
+        const errorCount = errors.filter(e => e.severity === 'error').length;
+        const warningCount = errors.filter(e => e.severity === 'warning').length;
+
+        if (errorCount === 0 && warningCount === 0) return 'No problems found.';
+
+        const parts = [];
+        if (errorCount > 0) parts.push(`${errorCount} error${errorCount === 1 ? '' : 's'}`);
+        if (warningCount > 0) parts.push(`${warningCount} warning${warningCount === 1 ? '' : 's'}`);
+
+        return parts.join(', ');
     }
 }
