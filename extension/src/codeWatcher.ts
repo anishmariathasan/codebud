@@ -70,8 +70,57 @@ export class CodeWatcher {
         }
     }
 
-    getRecentChangesWithContext(n: number = 5): ChangeContext[] {
+    getRecentChangesWithContext(n: number = 5): string[] {
         return this.recentChanges.slice(-n);
+    }
+
+    /**
+     * Get recent changes as simple strings
+     */
+    getRecentChanges(n: number = 5): string[] {
+        return this.recentChanges.slice(-n);
+    }
+
+    /**
+     * Extract basic file structure (functions, classes, variables)
+     */
+    getFileStructure(content: string): FileStructureItem[] {
+        const items: FileStructureItem[] = [];
+        const lines = content.split('\n');
+
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const lineNum = i + 1;
+
+            // Match function declarations
+            const funcMatch = line.match(/^\s*(?:export\s+)?(?:async\s+)?function\s+(\w+)/);
+            if (funcMatch) {
+                items.push({ name: funcMatch[1], line: lineNum, type: 'function' });
+                continue;
+            }
+
+            // Match arrow functions assigned to const/let
+            const arrowMatch = line.match(/^\s*(?:export\s+)?(?:const|let)\s+(\w+)\s*=\s*(?:async\s+)?\(/);
+            if (arrowMatch) {
+                items.push({ name: arrowMatch[1], line: lineNum, type: 'function' });
+                continue;
+            }
+
+            // Match class declarations
+            const classMatch = line.match(/^\s*(?:export\s+)?class\s+(\w+)/);
+            if (classMatch) {
+                items.push({ name: classMatch[1], line: lineNum, type: 'class' });
+                continue;
+            }
+
+            // Match top-level const/let (not in functions)
+            const varMatch = line.match(/^(?:export\s+)?(?:const|let|var)\s+(\w+)\s*=/);
+            if (varMatch && !line.includes('=>')) {
+                items.push({ name: varMatch[1], line: lineNum, type: 'variable' });
+            }
+        }
+
+        return items;
     }
 
     /**
