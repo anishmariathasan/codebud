@@ -5,6 +5,21 @@ import { VoiceButton } from './VoiceButton';
 import { SpeakingIndicator } from './SpeakingIndicator';
 import { Transcript, TranscriptEntry } from './Transcript';
 
+// Pale color palette
+const colors = {
+    background: '#f8fafc',
+    card: '#ffffff',
+    cardBorder: '#e2e8f0',
+    text: '#1e293b',
+    textMuted: '#64748b',
+    primary: '#6366f1',
+    primaryLight: '#eef2ff',
+    success: '#10b981',
+    successLight: '#ecfdf5',
+    warning: '#f59e0b',
+    warningLight: '#fffbeb',
+};
+
 interface LiveSessionProps {
     mode: 'driver' | 'navigator';
     onModeToggle: () => void;
@@ -37,11 +52,11 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
     transcript
 }) => {
     const warningStyle: React.CSSProperties = {
-        backgroundColor: 'rgba(210, 153, 34, 0.1)',
-        border: '1px solid #d29922',
-        borderRadius: '8px',
+        backgroundColor: colors.warningLight,
+        border: `1px solid ${colors.warning}`,
+        borderRadius: '10px',
         padding: '12px 16px',
-        color: '#d29922',
+        color: '#92400e',
         fontSize: '14px',
         display: 'flex',
         alignItems: 'center',
@@ -50,16 +65,16 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
     };
 
     const monitorBadgeStyle: React.CSSProperties = {
-        padding: '4px 12px',
-        backgroundColor: monitoringStatus.includes('Typing') ? 'rgba(88, 166, 255, 0.2)' : 'rgba(63, 185, 80, 0.2)',
-        borderRadius: '12px',
-        color: monitoringStatus.includes('Typing') ? '#58a6ff' : '#3fb950',
-        fontSize: '11px',
+        padding: '6px 14px',
+        backgroundColor: monitoringStatus.includes('Typing') ? colors.primaryLight : colors.successLight,
+        borderRadius: '20px',
+        color: monitoringStatus.includes('Typing') ? colors.primary : colors.success,
+        fontSize: '12px',
         fontWeight: 600,
     };
 
     return (
-        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '40px' }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '40px' }}>
             <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -67,10 +82,10 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
                 marginBottom: '32px'
             }}>
                 <div>
-                    <h2 style={{ fontSize: '24px', fontWeight: 600, color: '#e6edf3', marginBottom: '8px' }}>
+                    <h2 style={{ fontSize: '24px', fontWeight: 600, color: colors.text, marginBottom: '8px' }}>
                         Live Session
                     </h2>
-                    <p style={{ color: '#8b949e', fontSize: '14px' }}>
+                    <p style={{ color: colors.textMuted, fontSize: '14px' }}>
                         Real-time collaboration with your AI pair programmer.
                     </p>
                 </div>
@@ -84,15 +99,16 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: 'minmax(300px, 1fr) 1.5fr', gap: '24px' }}>
                 {/* Control Panel */}
                 <div style={{
-                    backgroundColor: '#161b22', // GitHub Canvas Subtler
-                    borderRadius: '16px',
-                    border: '1px solid #30363d',
-                    padding: '24px',
+                    backgroundColor: colors.card,
+                    borderRadius: '20px',
+                    border: `1px solid ${colors.cardBorder}`,
+                    padding: '28px',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '24px',
-                    height: 'fit-content'
+                    height: 'fit-content',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}>
                     {!agentConfigured && (
                         <div style={warningStyle}>
@@ -118,7 +134,7 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
                         <div style={{
                             position: 'absolute',
                             inset: 0,
-                            background: isVoiceActive ? 'radial-gradient(circle, rgba(63, 185, 80, 0.15) 0%, transparent 70%)' : 'transparent',
+                            background: isVoiceActive ? `radial-gradient(circle, ${colors.successLight} 0%, transparent 70%)` : 'transparent',
                             transition: 'background 0.5s ease'
                         }} />
                         <VoiceButton
@@ -135,27 +151,27 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
                     <div style={{
                         width: '100%',
                         padding: '16px',
-                        backgroundColor: '#0d1117',
-                        borderRadius: '8px',
-                        border: '1px solid #30363d',
+                        backgroundColor: colors.background,
+                        borderRadius: '12px',
+                        border: `1px solid ${colors.cardBorder}`,
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '12px'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '12px', color: '#8b949e' }}>Status</span>
+                            <span style={{ fontSize: '12px', color: colors.textMuted, fontWeight: 500 }}>Status</span>
                             <span style={monitorBadgeStyle}>{monitoringStatus}</span>
                         </div>
                         {secondsSinceLastChange >= 0 && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '12px', color: '#8b949e' }}>Last activity</span>
-                                <span style={{ fontSize: '12px', color: '#e6edf3' }}>{secondsSinceLastChange}s ago</span>
+                                <span style={{ fontSize: '12px', color: colors.textMuted, fontWeight: 500 }}>Last activity</span>
+                                <span style={{ fontSize: '12px', color: colors.text, fontWeight: 500 }}>{secondsSinceLastChange}s ago</span>
                             </div>
                         )}
                         {lastToolCalled && (
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <span style={{ fontSize: '12px', color: '#8b949e' }}>Tool</span>
-                                <span style={{ fontSize: '12px', color: '#58a6ff', fontFamily: 'monospace' }}>{lastToolCalled}</span>
+                                <span style={{ fontSize: '12px', color: colors.textMuted, fontWeight: 500 }}>Tool</span>
+                                <span style={{ fontSize: '12px', color: colors.primary, fontFamily: 'monospace', fontWeight: 500 }}>{lastToolCalled}</span>
                             </div>
                         )}
                     </div>
@@ -163,17 +179,18 @@ export const LiveSession: React.FC<LiveSessionProps> = ({
 
                 {/* Transcript */}
                 <div style={{
-                    backgroundColor: '#161b22',
-                    borderRadius: '16px',
-                    border: '1px solid #30363d',
+                    backgroundColor: colors.card,
+                    borderRadius: '20px',
+                    border: `1px solid ${colors.cardBorder}`,
                     padding: '0',
                     display: 'flex',
                     flexDirection: 'column',
                     maxHeight: '600px',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
                 }}>
-                    <div style={{ padding: '16px 20px', borderBottom: '1px solid #30363d' }}>
-                        <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#e6edf3' }}>Transcript</h3>
+                    <div style={{ padding: '20px 24px', borderBottom: `1px solid ${colors.cardBorder}` }}>
+                        <h3 style={{ fontSize: '15px', fontWeight: 600, color: colors.text }}>Transcript</h3>
                     </div>
                     <div style={{ flex: 1, overflowY: 'auto', padding: '0' }}>
                         <Transcript entries={transcript} />

@@ -116,7 +116,7 @@ Please briefly review and respond.`;
     }, [conversation]);
 
     // Code monitor hook
-    const { isConnected: isExtensionConnected, isTyping, secondsSinceLastChange } = useCodeMonitor({
+    const { isConnected: isExtensionConnected, secondsSinceLastChange } = useCodeMonitor({
         pollInterval: 4000,
         pauseThreshold: 5,
         onContextUpdate: handleContextUpdate,

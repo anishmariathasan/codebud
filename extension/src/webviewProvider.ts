@@ -63,9 +63,22 @@ export class WebviewProvider implements vscode.WebviewViewProvider {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' https://elevenlabs.io; connect-src http://localhost:3001 https://*.elevenlabs.io wss://*.elevenlabs.io; media-src blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'nonce-${nonce}' https://elevenlabs.io; connect-src http://localhost:3001 https://*.elevenlabs.io wss://*.elevenlabs.io https://generativelanguage.googleapis.com; media-src blob:;">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="${styleUri}" rel="stylesheet">
     <title>CodeBud</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #09090b;
+            color: #e6edf3;
+            min-height: 100vh;
+        }
+        #root { min-height: 100vh; }
+    </style>
 </head>
 <body>
     <div id="root"></div>
@@ -125,9 +138,22 @@ function getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri): s
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' https://elevenlabs.io; connect-src http://localhost:3001 https://*.elevenlabs.io wss://*.elevenlabs.io; media-src blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'nonce-${nonce}' https://elevenlabs.io; connect-src http://localhost:3001 https://*.elevenlabs.io wss://*.elevenlabs.io https://generativelanguage.googleapis.com; media-src blob:;">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="${styleUri}" rel="stylesheet">
     <title>CodeBud Voice</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #09090b;
+            color: #e6edf3;
+            min-height: 100vh;
+        }
+        #root { min-height: 100vh; }
+    </style>
 </head>
 <body>
     <div id="root"></div>
@@ -135,6 +161,7 @@ function getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri): s
 </body>
 </html>`;
 }
+
 
 function getNonce(): string {
     let text = '';
