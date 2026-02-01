@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
 import { Server } from 'http';
 
 import { CodeWatcher } from './codeWatcher';
@@ -8,6 +9,7 @@ import { DiagnosticsCollector } from './diagnostics';
 import { ModeManager } from './modeManager';
 import { EditorActions } from './editorActions';
 import { registerCommands } from './commands';
+import { WebviewProvider, WebviewPanelManager } from './webviewProvider';
 
 const API_PORT = 3001;
 
@@ -32,6 +34,22 @@ export function activate(context: vscode.ExtensionContext): void {
     // Register commands
     registerCommands(context, modeManager);
 
+    // Register webview provider for sidebar
+    const webviewProvider = new WebviewProvider(context.extensionUri);
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(
+            WebviewProvider.viewType,
+            webviewProvider
+        )
+    );
+
+    // Register command to open Voice UI as panel
+    context.subscriptions.push(
+        vscode.commands.registerCommand('codebud.openVoicePanel', () => {
+            WebviewPanelManager.createOrShow(context.extensionUri);
+        })
+    );
+
     // Add modules to subscriptions for cleanup
     context.subscriptions.push({
         dispose: () => {
@@ -40,6 +58,7 @@ export function activate(context: vscode.ExtensionContext): void {
             editorActions?.dispose();
         },
     });
+
 
     // Create Express app
     const app = express();
@@ -50,6 +69,15 @@ export function activate(context: vscode.ExtensionContext): void {
     app.use((req, res, next) => {
         console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
         next();
+    });
+
+    // Serve bundled Voice UI static files
+    const voiceUIPath = path.join(context.extensionPath, 'voice-ui-dist');
+    app.use(express.static(voiceUIPath));
+
+    // Fallback to index.html for SPA routing
+    app.get('/', (_req, res) => {
+        res.sendFile(path.join(voiceUIPath, 'index.html'));
     });
 
     // Route: GET /api/context - Get current code context

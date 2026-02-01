@@ -1,16 +1,32 @@
 # CodeBud
 Voice powered AI pair programmer so you actually understand the codebase, with personalised feedback to improve your coding. 
 
-## Quick Start
+## Installation
 
+### From GitHub Releases (Recommended)
+1. Download the latest `.vsix` file from [Releases](https://github.com/your-username/codebud/releases)
+2. In VS Code: `Cmd+Shift+P` → **"Extensions: Install from VSIX..."**
+3. Select the downloaded file and reload VS Code
+4. Open the **CodeBud** panel from the sidebar (🎤 icon)
+5. Enter your ElevenLabs Agent ID and start coding!
+
+### Development Setup
 ```bash
 # Install dependencies
 npm run setup
 
 # Start extension: Open extension/ folder in VS Code, press F5
 
-# Start voice UI
+# Start voice UI (optional - now bundled in extension)
 npm run ui
+```
+
+### Build VSIX Package
+```bash
+cd extension
+npm install
+npm run package
+# Creates: extension/codebud-0.1.0.vsix
 ```
 
 Then follow [docs/AGENT_SETUP.md](docs/AGENT_SETUP.md) to configure your ElevenLabs agent.
