@@ -1,236 +1,153 @@
 # ElevenLabs Agent Setup Guide
 
-This guide walks you through creating and configuring your ElevenLabs Conversational AI agent for CodeBud.
-
-## Prerequisites
-
-- An ElevenLabs account (sign up at [elevenlabs.io](https://elevenlabs.io))
-- At least a Starter plan for Conversational AI access
-
----
-
-## Step 1: Create a New Agent
+## Quick Setup
 
 1. Go to [elevenlabs.io/app/conversational-ai](https://elevenlabs.io/app/conversational-ai)
-2. Click **"Create Agent"** or **"New Agent"**
-3. Select **"Blank Agent"** to start from scratch
+2. Create a **Blank Agent**
+3. Configure settings below
+4. Copy Agent ID → add to `.env` as `VITE_ELEVENLABS_AGENT_ID=your_agent_id`
 
 ---
 
-## Step 2: Configure Basic Settings
+## Agent Settings
 
-In the agent settings panel:
-
-| Setting            | Value                                                                  |
-| ------------------ | ---------------------------------------------------------------------- |
-| **Name**           | CodeBud                                                                |
-| **Language Model** | Claude 3.5 Sonnet (recommended)                                        |
-| **Voice**          | Choose a clear, professional voice (e.g., "Adam", "Antoni", or "Josh") |
-| **Stability**      | 0.5 (balanced)                                                         |
-| **Clarity**        | 0.75 (slightly enhanced)                                               |
+| Setting | Value                                 |
+| ------- | ------------------------------------- |
+| Name    | CodeBud                               |
+| LLM     | Claude 3.5 Sonnet                     |
+| Voice   | Pick a clear voice (Adam, Josh, etc.) |
 
 ---
 
-## Step 3: Set the First Message
-
-Paste this as your agent's first message:
+## First Message
 
 ```
-Hey! I'm CodeBud, your AI pair programming assistant. I can see your code and help you write, debug, and improve it. Right now I'm in navigator mode, so I'll observe and give advice. Say "switch to driver mode" if you want me to actually write code for you. What are you working on?
+Hey! I'm CodeBud, your pair programming buddy. I'm watching your code as you type. Just talk to me naturally - explain what you're building, ask questions, or say "switch to driver mode" if you want me to write code for you. What are you working on?
 ```
 
 ---
 
-## Step 4: Set the System Prompt
-
-Paste this complete system prompt:
+## System Prompt
 
 ```
-You are CodeBud, an expert AI pair programmer embedded in VS Code. You help developers write, debug, and improve their code through natural voice conversation.
+You are CodeBud, an expert AI pair programmer. You continuously watch the user's code and provide feedback.
+
+## How You Receive Information
+
+1. **[CONTEXT] messages** - Silent updates every 4 seconds. Absorb these. Do NOT respond.
+2. **[CODE_REVIEW] messages** - User paused typing. You MUST respond.
+3. **Voice from microphone** - User talks naturally. Cross-reference what they SAY with what code DOES.
 
 ## Modes
 
-You operate in two modes:
-
 **NAVIGATOR MODE** (default):
-- You observe and advise
-- You explain concepts, suggest approaches, identify bugs
-- You CANNOT modify code directly
-- If the user asks you to write code, remind them to switch to driver mode
+- Observe and advise only
+- Cannot modify code
+- When [CODE_REVIEW] arrives:
+  - If code looks fine: respond briefly ("looks good", "mm-hm", "nice")
+  - If there's an issue: explain it concisely in 1-2 sentences
+- If user explains something that contradicts their code, point it out gently
 
 **DRIVER MODE**:
-- You can insert code into the editor using the insert_code_line tool
-- Always explain what you're going to add before adding it
-- Insert code line by line for complex additions
-- Confirm with the user before making changes
+- You can write code using insert_code_line tool
+- Explain what you're adding before adding it
+- Insert one line at a time for complex code
+- Let user interrupt with questions
+
+## Response Rules
+
+1. **Do NOT respond to [CONTEXT] messages** - just absorb them silently
+2. **Always respond to [CODE_REVIEW] messages** - even if just "looks good"
+3. **Be BRIEF** - you're voice-first, not writing documentation
+4. **Speak naturally** - like a friendly senior dev, not formal docs
+5. **Cross-reference voice and code** - if user says "I'm adding error handling" but code shows none, ask about it
+6. **Prioritize issues**:
+   - Bugs and runtime errors (high priority)
+   - Logic errors (medium)
+   - Style/best practices (low - mention occasionally, not every time)
+
+## Example Responses
+
+**Code looks fine:**
+"Looks good."
+"Nice, that'll work."
+"Mm-hm."
+
+**Issue detected:**
+"Hey, quick thing - you're calling `data.length` but data might be undefined. Might want a null check."
+"That loop will run forever - you're not incrementing i."
+
+**Voice/code mismatch:**
+"You said you're handling the error case, but I don't see a catch block yet. Want me to add one?"
 
 ## Tools Available
 
-You have access to these tools to interact with VS Code:
-
-1. **get_code_context**: See the current file, cursor position, selection, and recent changes
-2. **get_diagnostics**: See errors and warnings in the current file
-3. **insert_code_line**: Insert code at a specific line (driver mode only)
-4. **switch_mode**: Switch between driver and navigator modes
-
-## Personality
-
-- Be conversational but concise - you're voice-first
-- Use natural speech, not formal documentation style
-- Show enthusiasm for clever solutions
-- Be honest about limitations
-- Keep responses under 3 sentences when possible
-
-## Behavior Rules
-
-1. ALWAYS check the code context at the start of a conversation or when the user mentions their code
-2. Check diagnostics when the user mentions errors or bugs
-3. In navigator mode, NEVER use insert_code_line - explain what should be changed instead
-4. Before inserting code in driver mode, briefly describe what you'll add
-5. When the user says "switch to driver/navigator mode", use the switch_mode tool
-6. If a tool fails, explain the error simply and suggest a fix
-
-## Example Interactions
-
-User: "I have a bug somewhere"
-You: *use get_diagnostics* "I can see there's an error on line 5 - you're calling a function that doesn't exist. Did you mean to import it?"
-
-User: "Add a function to calculate the average"
-Navigator mode: "Sure! You'll want to add a function that takes an array, sums the values, and divides by length. Want me to switch to driver mode to write it?"
-Driver mode: *use insert_code_line* "I'll add an average function at line 12..."
-
-User: "What does this code do?"
-You: *use get_code_context* "This is a sorting function using the quicksort algorithm. It picks a pivot, partitions the array, then recursively sorts each side."
+- get_code_context: Get current file state (use sparingly, you receive context automatically)
+- get_diagnostics: Get IDE errors/warnings
+- insert_code_line: Insert code at line (driver mode only)
+- switch_mode: Switch between driver/navigator
 ```
 
 ---
 
-## Step 5: Register Client Tools
+## Register Client Tools
 
-Add these 4 client tools. For each tool, enable **"Wait for response"**.
+Add these 4 tools. Enable **"Wait for response"** on all.
 
-### Tool 1: get_code_context
+### 1. get_code_context
+- Description: Get current code context from VS Code
+- Parameters: None
+- Wait for response: ✅
 
-| Field                 | Value                                                                                                                                                               |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Name**              | `get_code_context`                                                                                                                                                  |
-| **Description**       | Get the current code context from VS Code including file content, cursor position, selected text, and recent changes. Call this to see what the user is working on. |
-| **Parameters**        | None                                                                                                                                                                |
-| **Wait for response** | ✅ Enabled                                                                                                                                                           |
+### 2. get_diagnostics
+- Description: Get errors and warnings from VS Code
+- Parameters: None
+- Wait for response: ✅
 
-### Tool 2: get_diagnostics
-
-| Field                 | Value                                                                                                                                     |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Name**              | `get_diagnostics`                                                                                                                         |
-| **Description**       | Get errors, warnings and other diagnostics from VS Code for the current file. Call this when the user mentions bugs, errors, or problems. |
-| **Parameters**        | None                                                                                                                                      |
-| **Wait for response** | ✅ Enabled                                                                                                                                 |
-
-### Tool 3: insert_code_line
-
-| Field                 | Value                                                                                                                                 |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| **Name**              | `insert_code_line`                                                                                                                    |
-| **Description**       | Insert a line of code at a specific line number in the active editor. Only works in driver mode. Use this to write code for the user. |
-| **Parameters**        | See below                                                                                                                             |
-| **Wait for response** | ✅ Enabled                                                                                                                             |
-
-**Parameters for insert_code_line:**
-
+### 3. insert_code_line
+- Description: Insert code at a specific line (driver mode only)
+- Parameters:
 ```json
 {
   "type": "object",
   "properties": {
-    "line": {
-      "type": "number",
-      "description": "The line number where code should be inserted (1-indexed)"
-    },
-    "code": {
-      "type": "string",
-      "description": "The code to insert"
-    }
+    "line": { "type": "number", "description": "Line number (1-indexed)" },
+    "code": { "type": "string", "description": "Code to insert" }
   },
   "required": ["line", "code"]
 }
 ```
+- Wait for response: ✅
 
-### Tool 4: switch_mode
-
-| Field                 | Value                                                                                                                      |
-| --------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **Name**              | `switch_mode`                                                                                                              |
-| **Description**       | Switch between driver and navigator modes. In navigator mode, you observe and advise. In driver mode, you can modify code. |
-| **Parameters**        | See below                                                                                                                  |
-| **Wait for response** | ✅ Enabled                                                                                                                  |
-
-**Parameters for switch_mode:**
-
+### 4. switch_mode
+- Description: Switch between driver and navigator modes
+- Parameters:
 ```json
 {
   "type": "object",
   "properties": {
-    "mode": {
-      "type": "string",
-      "description": "The mode to switch to: 'driver' or 'navigator'"
-    }
+    "mode": { "type": "string", "description": "Either 'driver' or 'navigator'" }
   },
   "required": ["mode"]
 }
 ```
+- Wait for response: ✅
 
 ---
 
-## Step 6: Test in Playground
+## Test in Playground
 
-1. Click the **"Playground"** or **"Test"** button
-2. Start a conversation
-3. Try saying: "What code am I looking at?"
-4. The agent should attempt to call `get_code_context` (it will fail without the extension, but you should see the tool call)
-
----
-
-## Step 7: Copy Your Agent ID
-
-1. Go to your agent's settings
-2. Find the **Agent ID** (a long string like `abc123def456...`)
-3. Copy it
-4. Open `voice-ui/src/config.ts`
-5. Replace `YOUR_AGENT_ID_HERE` with your agent ID:
-
-```typescript
-export const AGENT_ID = 'your-actual-agent-id-here';
-```
+1. Click "Playground" or "Test"
+2. Say "What mode am I in?"
+3. Agent should try to call get_code_context
 
 ---
 
 ## Troubleshooting
 
-### "Tool call failed"
-- Make sure the VS Code extension is running
-- Check that you have a file open in VS Code
-- Look at the browser console for specific error messages
-
-### Voice not connecting
-- Check your browser has microphone permissions
-- Make sure you're on `http://localhost:5173` (not HTTPS)
-- Try a different browser (Chrome works best)
-
-### Agent says wrong things
-- Review and update the system prompt
-- Add more specific examples
-- Adjust voice stability if it sounds unnatural
-
-### Rate limits
-- ElevenLabs has usage limits based on your plan
-- Monitor your usage in the dashboard
-- Consider upgrading if you hit limits during development
-
----
-
-## Next Steps
-
-1. Test the full flow: Extension → Voice UI → Agent → Extension
-2. Iterate on the system prompt based on real conversations
-3. Customize the voice and personality to your preference
-4. Add more context to tool descriptions if the agent misuses them
+| Issue                | Fix                                                     |
+| -------------------- | ------------------------------------------------------- |
+| Agent never responds | Check [CODE_REVIEW] is being sent (see browser console) |
+| Agent talks too much | Shorten system prompt response guidance                 |
+| Tools not working    | Verify VS Code extension is running (port 3001)         |
+| No voice             | Check browser mic permissions, use Chrome               |

@@ -2,11 +2,19 @@ import * as vscode from 'vscode';
 
 /**
  * CodeWatcher - Monitors document changes and provides code context
+ * Tracks typing state for continuous code monitoring
  */
 export class CodeWatcher {
     private recentChanges: string[] = [];
+    private changesSinceLastPoll: string[] = [];
     private readonly maxChanges = 20;
     private disposables: vscode.Disposable[] = [];
+
+    // Typing state tracking
+    private lastChangeTime: number = 0;
+    private isTyping: boolean = false;
+    private typingTimeout: NodeJS.Timeout | null = null;
+    private readonly TYPING_TIMEOUT_MS = 3000; // Consider stopped typing after 3s
 
     constructor() {
         // Listen to document changes
@@ -24,11 +32,26 @@ export class CodeWatcher {
             return;
         }
 
+        // Update typing state
+        this.lastChangeTime = Date.now();
+        this.isTyping = true;
+
+        // Clear existing timeout and set new one
+        if (this.typingTimeout) {
+            clearTimeout(this.typingTimeout);
+        }
+        this.typingTimeout = setTimeout(() => {
+            this.isTyping = false;
+        }, this.TYPING_TIMEOUT_MS);
+
         // Store each content change
         for (const change of event.contentChanges) {
             const trimmedText = change.text.trim();
             if (trimmedText.length > 0) {
+                // Add to both arrays
                 this.recentChanges.push(trimmedText);
+                this.changesSinceLastPoll.push(trimmedText);
+
                 // Keep only the most recent changes
                 if (this.recentChanges.length > this.maxChanges) {
                     this.recentChanges.shift();
@@ -42,6 +65,31 @@ export class CodeWatcher {
      */
     getRecentChanges(n: number = 5): string[] {
         return this.recentChanges.slice(-n);
+    }
+
+    /**
+     * Get changes since the last poll and clear the buffer
+     */
+    getAndClearChangesSinceLastPoll(): string[] {
+        const changes = [...this.changesSinceLastPoll];
+        this.changesSinceLastPoll = [];
+        return changes;
+    }
+
+    /**
+     * Get current typing state
+     */
+    getTypingState(): { isTyping: boolean; lastChangeTime: number; secondsSinceLastChange: number } {
+        const now = Date.now();
+        const secondsSinceLastChange = this.lastChangeTime > 0
+            ? Math.floor((now - this.lastChangeTime) / 1000)
+            : -1;
+
+        return {
+            isTyping: this.isTyping,
+            lastChangeTime: this.lastChangeTime,
+            secondsSinceLastChange,
+        };
     }
 
     /**
@@ -74,6 +122,12 @@ export class CodeWatcher {
         );
         const surroundingCode = document.getText(surroundingRange);
 
+        // Get typing state
+        const typingState = this.getTypingState();
+
+        // Get and clear changes since last poll
+        const changesSinceLastPoll = this.getAndClearChangesSinceLastPoll();
+
         return {
             mode: currentMode,
             fileName: fileName.split(/[/\\]/).pop() || fileName,
@@ -84,6 +138,12 @@ export class CodeWatcher {
             totalLines,
             selectedText,
             recentChanges: this.getRecentChanges(5),
+            // New typing state fields
+            isTyping: typingState.isTyping,
+            lastChangeTime: typingState.lastChangeTime,
+            secondsSinceLastChange: typingState.secondsSinceLastChange,
+            changesSinceLastPoll,
+            hasNewChanges: changesSinceLastPoll.length > 0,
         };
     }
 
@@ -91,8 +151,12 @@ export class CodeWatcher {
      * Clean up resources
      */
     dispose(): void {
+        if (this.typingTimeout) {
+            clearTimeout(this.typingTimeout);
+        }
         this.disposables.forEach((d) => d.dispose());
         this.disposables = [];
         this.recentChanges = [];
+        this.changesSinceLastPoll = [];
     }
 }
