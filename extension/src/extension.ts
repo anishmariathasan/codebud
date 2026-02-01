@@ -164,6 +164,29 @@ export function activate(context: vscode.ExtensionContext): void {
         res.json(result);
     });
 
+    // Route: POST /api/delete - Delete a line
+    app.post('/api/delete', async (req, res) => {
+        if (!editorActions || !modeManager) {
+            res.status(500).json({ error: 'Extension not initialized' });
+            return;
+        }
+
+        if (modeManager.getMode() !== 'driver') {
+            res.status(403).json({ success: false, error: 'Only allowed in driver mode' });
+            return;
+        }
+
+        const { line } = req.body;
+
+        if (typeof line !== 'number') {
+            res.status(400).json({ success: false, error: 'Invalid params: line required' });
+            return;
+        }
+
+        const result = await editorActions.deleteLine(line);
+        res.json(result);
+    });
+
     // Route: POST /api/highlight - Highlight line
     app.post('/api/highlight', async (req, res) => {
         if (!editorActions) {

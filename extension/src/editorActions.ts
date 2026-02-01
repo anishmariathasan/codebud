@@ -118,6 +118,42 @@ export class EditorActions {
     }
 
     /**
+     * Delete a specific line
+     * @param line Line number (1-indexed)
+     */
+    async deleteLine(line: number): Promise<InsertCodeResponse> {
+        try {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                return { success: false, error: 'No active editor' };
+            }
+
+            const zeroIndexedLine = line - 1;
+
+            if (zeroIndexedLine < 0 || zeroIndexedLine >= editor.document.lineCount) {
+                return { success: false, error: `Invalid line: ${line}` };
+            }
+
+            const lineToDelete = editor.document.lineAt(zeroIndexedLine);
+            // Include the newline character to fully delete the line
+            const rangeWithNewline = lineToDelete.rangeIncludingLineBreak;
+
+            const success = await editor.edit(editBuilder => {
+                editBuilder.delete(rangeWithNewline);
+            });
+
+            if (success) {
+                return { success: true };
+            } else {
+                return { success: false, error: 'Delete operation failed' };
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            return { success: false, error: errorMessage };
+        }
+    }
+
+    /**
      * Highlight a line temporarily
      * @param line Line number (1-indexed)
      * @param durationMs How long to show the highlight
