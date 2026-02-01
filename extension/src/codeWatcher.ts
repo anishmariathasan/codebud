@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 
 /**
  * CodeWatcher - Monitors document changes and provides code context
+ * Tracks typing state for continuous code monitoring
  */
 export interface ChangeContext {
     text: string;
@@ -16,9 +17,16 @@ export interface FileStructureItem {
 }
 
 export class CodeWatcher {
-    private recentChanges: ChangeContext[] = [];
+    private recentChanges: string[] = [];
+    private changesSinceLastPoll: string[] = [];
     private readonly maxChanges = 20;
     private disposables: vscode.Disposable[] = [];
+
+    // Typing state tracking
+    private lastChangeTime: number = 0;
+    private isTyping: boolean = false;
+    private typingTimeout: NodeJS.Timeout | null = null;
+    private readonly TYPING_TIMEOUT_MS = 3000; // Consider stopped typing after 3s
 
     constructor() {
         this.disposables.push(
@@ -34,15 +42,27 @@ export class CodeWatcher {
             return;
         }
 
+        // Update typing state
+        this.lastChangeTime = Date.now();
+        this.isTyping = true;
+
+        // Clear existing timeout and set new one
+        if (this.typingTimeout) {
+            clearTimeout(this.typingTimeout);
+        }
+        this.typingTimeout = setTimeout(() => {
+            this.isTyping = false;
+        }, this.TYPING_TIMEOUT_MS);
+
+        // Store each content change
         for (const change of event.contentChanges) {
             const trimmedText = change.text.trim();
             if (trimmedText.length > 0) {
-                this.recentChanges.push({
-                    text: trimmedText,
-                    line: change.range.start.line + 1,
-                    timestamp: Date.now()
-                });
+                // Add to both arrays
+                this.recentChanges.push(trimmedText);
+                this.changesSinceLastPoll.push(trimmedText);
 
+                // Keep only the most recent changes
                 if (this.recentChanges.length > this.maxChanges) {
                     this.recentChanges.shift();
                 }
@@ -54,28 +74,34 @@ export class CodeWatcher {
         return this.recentChanges.slice(-n);
     }
 
-    getFileStructure(fileContent: string): FileStructureItem[] {
-        const structure: FileStructureItem[] = [];
-        const lines = fileContent.split('\n');
-
-        // Simple regex to match function/class/var definitions
-        // Captures: 1=type, 2=name
-        const regex = /\b(function|class|const|let|var)\s+([a-zA-Z0-9_]+)/; // Basic non-global matching per line
-
-        for (let i = 0; i < lines.length; i++) {
-            const match = lines[i].match(regex);
-            if (match) {
-                structure.push({
-                    name: match[2],
-                    line: i + 1,
-                    type: match[1] === 'class' ? 'class' : (match[1] === 'function' ? 'function' : 'variable')
-                });
-            }
-        }
-
-        return structure;
+    /**
+     * Get changes since the last poll and clear the buffer
+     */
+    getAndClearChangesSinceLastPoll(): string[] {
+        const changes = [...this.changesSinceLastPoll];
+        this.changesSinceLastPoll = [];
+        return changes;
     }
 
+    /**
+     * Get current typing state
+     */
+    getTypingState(): { isTyping: boolean; lastChangeTime: number; secondsSinceLastChange: number } {
+        const now = Date.now();
+        const secondsSinceLastChange = this.lastChangeTime > 0
+            ? Math.floor((now - this.lastChangeTime) / 1000)
+            : -1;
+
+        return {
+            isTyping: this.isTyping,
+            lastChangeTime: this.lastChangeTime,
+            secondsSinceLastChange,
+        };
+    }
+
+    /**
+     * Get complete code context for the current editor state
+     */
     getContext(currentMode: 'driver' | 'navigator'): object | null {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -111,7 +137,11 @@ export class CodeWatcher {
         );
         const surroundingCode = document.getText(surroundingRange);
 
-        const workspaceFiles = vscode.window.visibleTextEditors.map(e => e.document.fileName.split(/[/\\]/).pop());
+        // Get typing state
+        const typingState = this.getTypingState();
+
+        // Get and clear changes since last poll
+        const changesSinceLastPoll = this.getAndClearChangesSinceLastPoll();
 
         return {
             mode: currentMode,
@@ -123,14 +153,23 @@ export class CodeWatcher {
             cursorLine,
             totalLines,
             selectedText,
-            recentChanges: this.getRecentChangesWithContext(5),
-            workspaceFiles
+            recentChanges: this.getRecentChanges(5),
+            // New typing state fields
+            isTyping: typingState.isTyping,
+            lastChangeTime: typingState.lastChangeTime,
+            secondsSinceLastChange: typingState.secondsSinceLastChange,
+            changesSinceLastPoll,
+            hasNewChanges: changesSinceLastPoll.length > 0,
         };
     }
 
     dispose(): void {
+        if (this.typingTimeout) {
+            clearTimeout(this.typingTimeout);
+        }
         this.disposables.forEach((d) => d.dispose());
         this.disposables = [];
         this.recentChanges = [];
+        this.changesSinceLastPoll = [];
     }
 }

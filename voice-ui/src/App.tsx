@@ -1,11 +1,12 @@
 /**
  * App - Main application component for CodeBud Voice UI
+ * Implements 3-channel code monitoring with ElevenLabs agent
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useConversation } from '@11labs/react';
 import { AGENT_ID } from './config';
-import { useExtensionStatus } from './hooks/useExtensionStatus';
+import { useCodeMonitor } from './hooks/useCodeMonitor';
 import { createClientTools } from './clientTools';
 import { switchMode } from './api';
 import { StatusBar } from './components/StatusBar';
@@ -15,13 +16,14 @@ import { SpeakingIndicator } from './components/SpeakingIndicator';
 import { Transcript, TranscriptEntry } from './components/Transcript';
 
 const App: React.FC = () => {
-    // Extension status polling
-    const { isConnected: isExtensionConnected, mode: extensionMode } = useExtensionStatus();
-
     // Local state
     const [mode, setMode] = useState<'driver' | 'navigator'>('navigator');
     const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
     const [lastToolCalled, setLastToolCalled] = useState<string | null>(null);
+    const [monitoringStatus, setMonitoringStatus] = useState<string>('Idle');
+
+    // Track if voice session is active
+    const isVoiceActiveRef = useRef(false);
 
     // Check if agent is configured
     const agentConfigured = AGENT_ID !== 'YOUR_AGENT_ID_HERE' && AGENT_ID.length > 0;
@@ -41,9 +43,11 @@ const App: React.FC = () => {
     const conversation = useConversation({
         onConnect: () => {
             console.log('Connected to ElevenLabs');
+            isVoiceActiveRef.current = true;
         },
         onDisconnect: () => {
             console.log('Disconnected from ElevenLabs');
+            isVoiceActiveRef.current = false;
         },
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onMessage: (message: any) => {
@@ -63,6 +67,72 @@ const App: React.FC = () => {
         },
     });
 
+    // Channel 1: Silent context updates (every 4 seconds)
+    const handleContextUpdate = useCallback((context: any) => {
+        if (!isVoiceActiveRef.current) return;
+
+        try {
+            // Send contextual update to agent (agent absorbs but doesn't respond)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const conv = conversation as any;
+            if (conv.sendContextualUpdate) {
+                const contextSummary = `[CONTEXT] File: ${context.fileName} (${context.language}), Line: ${context.cursorLine}/${context.totalLines}, Mode: ${context.mode}, Typing: ${context.isTyping}`;
+                conv.sendContextualUpdate(contextSummary);
+                setMonitoringStatus(context.isTyping ? '✍️ Typing...' : '👀 Watching');
+            }
+        } catch (err) {
+            console.error('Failed to send context update:', err);
+        }
+    }, [conversation]);
+
+    // Channel 2: Typing pause triggers code review
+    const handleTypingPause = useCallback((context: any) => {
+        if (!isVoiceActiveRef.current) return;
+
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const conv = conversation as any;
+            if (conv.sendUserMessage) {
+                // Build a code review request
+                const reviewMessage = `[CODE_REVIEW] I just paused typing. Here's my current code around line ${context.cursorLine}:
+
+\`\`\`${context.language}
+${context.surroundingCode}
+\`\`\`
+
+Recent changes: ${context.recentChanges.join(', ') || 'none'}
+File: ${context.fileName}
+Mode: ${context.mode}
+
+Please briefly review and respond. If it looks fine, just say "looks good" or similar. If there's an issue, explain it concisely.`;
+
+                conv.sendUserMessage(reviewMessage);
+                setMonitoringStatus('🔍 Reviewing...');
+
+                // Add to transcript
+                setTranscript((prev) => [
+                    ...prev,
+                    {
+                        role: 'user',
+                        text: `[Auto-review triggered at line ${context.cursorLine}]`,
+                        timestamp: new Date(),
+                    },
+                ]);
+            }
+        } catch (err) {
+            console.error('Failed to send typing pause message:', err);
+        }
+    }, [conversation]);
+
+    // Code monitor hook - Channel 1 & 2
+    const { isConnected: isExtensionConnected, isTyping, secondsSinceLastChange } = useCodeMonitor({
+        pollInterval: 4000,
+        pauseThreshold: 5,
+        onContextUpdate: handleContextUpdate,
+        onTypingPause: handleTypingPause,
+        enabled: isVoiceActiveRef.current && agentConfigured,
+    });
+
     // Start voice session
     const startConversation = useCallback(async () => {
         if (!agentConfigured) {
@@ -80,6 +150,8 @@ const App: React.FC = () => {
                 agentId: AGENT_ID,
                 clientTools,
             });
+
+            setMonitoringStatus('🎤 Session started');
         } catch (error) {
             console.error('Failed to start conversation:', error);
         }
@@ -89,6 +161,7 @@ const App: React.FC = () => {
     const stopConversation = useCallback(async () => {
         try {
             await conversation.endSession();
+            setMonitoringStatus('Idle');
         } catch (error) {
             console.error('Failed to stop conversation:', error);
         }
@@ -105,14 +178,7 @@ const App: React.FC = () => {
         }
     }, [mode]);
 
-    // Sync mode from extension
-    React.useEffect(() => {
-        if (extensionMode === 'driver' || extensionMode === 'navigator') {
-            setMode(extensionMode);
-        }
-    }, [extensionMode]);
-
-    // Determine voice status - use string comparison for SDK compatibility
+    // Determine voice status
     const getVoiceStatus = (): 'disconnected' | 'connected' | 'error' => {
         const status = String(conversation.status);
         if (status === 'connected') return 'connected';
@@ -184,11 +250,21 @@ const App: React.FC = () => {
         gap: '10px',
     };
 
-    const toolCallStyle: React.CSSProperties = {
+    const statusRowStyle: React.CSSProperties = {
+        display: 'flex',
+        gap: '16px',
         fontSize: '12px',
         color: '#8b949e',
-        textAlign: 'center',
-        marginTop: '8px',
+        justifyContent: 'center',
+    };
+
+    const monitorBadgeStyle: React.CSSProperties = {
+        padding: '4px 12px',
+        backgroundColor: isTyping ? 'rgba(88, 166, 255, 0.2)' : 'rgba(63, 185, 80, 0.2)',
+        borderRadius: '12px',
+        color: isTyping ? '#58a6ff' : '#3fb950',
+        fontSize: '11px',
+        fontWeight: 600,
     };
 
     return (
@@ -209,7 +285,7 @@ const App: React.FC = () => {
                     <div style={warningStyle}>
                         <span>⚠️</span>
                         <span>
-                            Agent not configured. Edit <code>src/config.ts</code> and add your ElevenLabs Agent ID.
+                            Agent not configured. Set VITE_ELEVENLABS_AGENT_ID in .env
                         </span>
                     </div>
                 )}
@@ -218,7 +294,7 @@ const App: React.FC = () => {
                     <div style={warningStyle}>
                         <span>⚠️</span>
                         <span>
-                            VS Code extension not detected. Make sure the extension is running (press F5 in the extension folder).
+                            VS Code extension not detected. Press F5 in the extension folder.
                         </span>
                     </div>
                 )}
@@ -240,8 +316,16 @@ const App: React.FC = () => {
 
                     <SpeakingIndicator isSpeaking={conversation.isSpeaking} />
 
+                    {/* Monitoring status */}
+                    <div style={statusRowStyle}>
+                        <span style={monitorBadgeStyle}>{monitoringStatus}</span>
+                        {secondsSinceLastChange >= 0 && (
+                            <span>Last change: {secondsSinceLastChange}s ago</span>
+                        )}
+                    </div>
+
                     {lastToolCalled && (
-                        <div style={toolCallStyle}>
+                        <div style={{ fontSize: '12px', color: '#8b949e' }}>
                             Last tool: <strong>{lastToolCalled}</strong>
                         </div>
                     )}

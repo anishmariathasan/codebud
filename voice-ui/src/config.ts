@@ -2,8 +2,8 @@
  * Configuration constants for CodeBud Voice UI
  */
 
-// ElevenLabs Agent ID - Person 3 fills this in after creating the agent
-export const AGENT_ID: string = 'YOUR_AGENT_ID_HERE';
+// ElevenLabs Agent ID (loaded from environment variable)
+export const AGENT_ID: string = import.meta.env.VITE_ELEVENLABS_AGENT_ID || '';
 
 // VS Code Extension API base URL
 export const API_BASE: string = 'http://localhost:3001';
