@@ -3,13 +3,6 @@ Voice powered AI pair programmer so you actually understand the codebase, with p
 
 ## Installation
 
-### From GitHub Releases (Recommended)
-1. Download the latest `.vsix` file from [Releases](https://github.com/your-username/codebud/releases)
-2. In VS Code: `Cmd+Shift+P` → **"Extensions: Install from VSIX..."**
-3. Select the downloaded file and reload VS Code
-4. Open the **CodeBud** panel from the sidebar (🎤 icon)
-5. Enter your ElevenLabs Agent ID and start coding!
-
 ### Development Setup
 ```bash
 # Install dependencies
@@ -28,8 +21,6 @@ npm install
 npm run package
 # Creates: extension/codebud-0.1.0.vsix
 ```
-
-Then follow [docs/AGENT_SETUP.md](docs/AGENT_SETUP.md) to configure your ElevenLabs agent.
 
 ## File Structure
 
@@ -55,7 +46,6 @@ codebud/
 │   └── package.json
 │
 ├── shared/types.ts      # API type definitions
-├── docs/AGENT_SETUP.md  # ElevenLabs setup guide
 └── scripts/test-api.sh  # API test script
 ```
 
