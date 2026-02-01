@@ -1,23 +1,23 @@
 # CodeBud
 Voice powered AI pair programmer so you actually understand the codebase, with personalised feedback to improve your coding.
 
-## ✨ Features
+## Features
 
-- **🎤 Voice-Powered Conversations** — Talk naturally with your AI pair programmer using ElevenLabs voice technology. Ask questions, request explanations, and get real-time feedback without leaving your editor.
+- **Voice-Powered Conversations** — Talk naturally with your AI pair programmer using ElevenLabs voice technology. Ask questions, request explanations, and get real-time feedback without leaving your editor.
 
-- **👀 Real-Time Code Monitoring** — CodeBud silently watches your coding activity, tracking file changes, cursor position, and typing patterns to provide contextually relevant assistance.
+- **Real-Time Code Monitoring** — CodeBud silently watches your coding activity, tracking file changes, cursor position, and typing patterns to provide contextually relevant assistance.
 
-- **🚗 Driver/Navigator Modes** — Switch between modes to control how the AI interacts with your code:
+- **Driver/Navigator Modes** — Switch between modes to control how the AI interacts with your code:
   - **Driver Mode**: AI can insert and modify code directly in your editor
   - **Navigator Mode**: AI provides guidance and suggestions without making changes
 
-- **🔍 Auto-Review on Typing Pause** — When you pause typing, CodeBud automatically reviews your recent code changes and offers constructive feedback, catching potential issues early.
+- **Auto-Review on Typing Pause** — When you pause typing, CodeBud automatically reviews your recent code changes and offers constructive feedback, catching potential issues early.
 
-- **📊 Insights Panel** — AI-powered analytics dashboard that summarizes your coding sessions using Gemini, highlighting common errors, improvement areas, and personalized learning suggestions.
+- **Insights Panel** — AI-powered analytics dashboard that summarizes your coding sessions using Gemini, highlighting common errors, improvement areas, and personalized learning suggestions.
 
-- **💬 Live Transcript** — Full conversation history displayed in real-time, so you never lose track of the AI's suggestions and explanations.
+- **Live Transcript** — Full conversation history displayed in real-time, so you never lose track of the AI's suggestions and explanations.
 
-- **🔌 VS Code Integration** — Seamlessly embedded as a VS Code extension with keyboard shortcuts for quick access. 
+- **VS Code Integration** — Seamlessly embedded as a VS Code extension with keyboard shortcuts for quick access. 
 
 ## Installation
 
