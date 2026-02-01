@@ -1,14 +1,27 @@
 {
     "name": "codebud",
     "displayName": "CodeBud - AI Voice Pair Programmer",
-    "description": "An AI-powered voice pair programming assistant for VS Code",
+    "description": "Voice AI-powered pair programmer for VS Code",
     "version": "0.1.0",
     "publisher": "codebud",
+    "license": "",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/anishmariathasan/codebud"
+    },
     "engines": {
         "vscode": "^1.85.0"
     },
     "categories": [
-        "Other"
+        "Other",
+        "Machine Learning"
+    ],
+    "keywords": [
+        "ai",
+        "voice",
+        "pair programming",
+        "assistant",
+        "elevenlabs"
     ],
     "activationEvents": [
         "onStartupFinished"
@@ -18,7 +31,12 @@
         "commands": [
             {
                 "command": "codebud.openUI",
-                "title": "CodeBud: Open Voice UI"
+                "title": "CodeBud: Open Voice UI (Browser)"
+            },
+            {
+                "command": "codebud.openVoicePanel",
+                "title": "CodeBud: Open Voice Panel",
+                "icon": "$(mic)"
             },
             {
                 "command": "codebud.toggleMode",
@@ -33,6 +51,24 @@
                 "title": "CodeBud: Switch to Driver Mode"
             }
         ],
+        "viewsContainers": {
+            "activitybar": [
+                {
+                    "id": "codebud",
+                    "title": "CodeBud",
+                    "icon": "$(mic)"
+                }
+            ]
+        },
+        "views": {
+            "codebud": [
+                {
+                    "type": "webview",
+                    "id": "codebud.voiceUI",
+                    "name": "Voice Assistant"
+                }
+            ]
+        },
         "keybindings": [
             {
                 "command": "codebud.openUI",
@@ -47,10 +83,13 @@
         ]
     },
     "scripts": {
-        "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./",
+        "vscode:prepublish": "npm run compile",
+        "compile": "node esbuild.js --production",
+        "watch": "node esbuild.js --watch",
         "pretest": "npm run compile",
-        "lint": "eslint src --ext ts"
+        "lint": "eslint src --ext ts",
+        "package": "npm run compile && npx vsce package --no-dependencies",
+        "publish": "npm run compile && npx vsce publish --no-dependencies"
     },
     "dependencies": {
         "cors": "^2.8.5",
@@ -61,6 +100,8 @@
         "@types/express": "^4.17.21",
         "@types/node": "^20.10.0",
         "@types/vscode": "^1.85.0",
+        "@vscode/vsce": "^2.22.0",
+        "esbuild": "^0.27.2",
         "typescript": "^5.3.0"
     }
 }

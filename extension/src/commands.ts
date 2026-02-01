@@ -11,7 +11,7 @@ export function registerCommands(
     // Command: Open Voice UI in browser
     context.subscriptions.push(
         vscode.commands.registerCommand('codebud.openUI', () => {
-            vscode.env.openExternal(vscode.Uri.parse('http://localhost:5173'));
+            vscode.env.openExternal(vscode.Uri.parse('http://localhost:3001'));
         })
     );
 

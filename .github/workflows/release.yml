@@ -1,0 +1,54 @@
+name: Release Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install dependencies
+        working-directory: ./extension
+        run: npm install
+        
+      - name: Build extension
+        working-directory: ./extension
+        run: npm run compile
+        
+      - name: Package extension
+        working-directory: ./extension
+        run: npx vsce package --no-dependencies
+        
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: extension/codebud-*.vsix
+          body: |
+            ## CodeBud v${{ steps.get_version.outputs.VERSION }}
+            
+            ### Installation
+            1. Download the `.vsix` file below
+            2. In VS Code: `Cmd+Shift+P` → "Extensions: Install from VSIX..."
+            3. Select the downloaded file
+            4. Reload VS Code
+            
+            ### Setup
+            1. Get an ElevenLabs Agent ID (see docs/AGENT_SETUP.md)
+            2. Open the CodeBud panel from the sidebar
+            3. Enter your Agent ID and start coding!
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
