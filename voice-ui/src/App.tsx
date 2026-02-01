@@ -7,6 +7,7 @@ import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useConversation } from '@11labs/react';
 import { AGENT_ID } from './config';
 import { useCodeMonitor } from './hooks/useCodeMonitor';
+import { useExtensionStatus } from './hooks/useExtensionStatus';
 import { createClientTools } from './clientTools';
 import { switchMode } from './api';
 import { StatusBar } from './components/StatusBar';
@@ -132,6 +133,11 @@ Please briefly review and respond. If it looks fine, just say "looks good" or si
         onTypingPause: handleTypingPause,
         enabled: isVoiceActiveRef.current && agentConfigured,
     });
+
+    // Extension status hook - Poll status independently for immediate feedback
+    const extensionStatus = useExtensionStatus();
+    // Use extension status for initial connection indicator, fall back to code monitor once voice is active
+    const extensionConnectionStatus = extensionStatus.isConnected || isExtensionConnected;
 
     // Start voice session
     const startConversation = useCallback(async () => {
@@ -276,7 +282,7 @@ Please briefly review and respond. If it looks fine, just say "looks good" or si
 
             <main style={mainContentStyle}>
                 <StatusBar
-                    isExtensionConnected={isExtensionConnected}
+                    isExtensionConnected={extensionConnectionStatus}
                     voiceStatus={getVoiceStatus()}
                     agentConfigured={agentConfigured}
                 />
@@ -290,7 +296,7 @@ Please briefly review and respond. If it looks fine, just say "looks good" or si
                     </div>
                 )}
 
-                {!isExtensionConnected && (
+                {!extensionConnectionStatus && (
                     <div style={warningStyle}>
                         <span>⚠️</span>
                         <span>
@@ -303,7 +309,7 @@ Please briefly review and respond. If it looks fine, just say "looks good" or si
                     <ModeToggle
                         mode={mode}
                         onToggle={handleModeToggle}
-                        disabled={!isExtensionConnected}
+                        disabled={!extensionConnectionStatus}
                     />
 
                     <VoiceButton
