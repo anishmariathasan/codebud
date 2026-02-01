@@ -1,8 +1,6 @@
 /**
- * App - Main application component for CodeBud Voice UI
- * Implements 3-channel code monitoring with ElevenLabs agent
+ * App - Main application entry point
  */
-
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useConversation } from '@11labs/react';
 import { AGENT_ID } from './config';
@@ -10,14 +8,14 @@ import { useCodeMonitor } from './hooks/useCodeMonitor';
 import { useExtensionStatus } from './hooks/useExtensionStatus';
 import { createClientTools } from './clientTools';
 import { switchMode } from './api';
-import { StatusBar } from './components/StatusBar';
-import { ModeToggle } from './components/ModeToggle';
-import { VoiceButton } from './components/VoiceButton';
-import { SpeakingIndicator } from './components/SpeakingIndicator';
-import { Transcript, TranscriptEntry } from './components/Transcript';
+import { DashboardLayout } from './components/DashboardLayout';
+import { LiveSession } from './components/LiveSession';
+import { InsightsPanel } from './components/InsightsPanel';
+import { TranscriptEntry } from './components/Transcript';
 
 const App: React.FC = () => {
     // Local state
+    const [currentTab, setCurrentTab] = useState<'live' | 'insights'>('live');
     const [mode, setMode] = useState<'driver' | 'navigator'>('navigator');
     const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
     const [lastToolCalled, setLastToolCalled] = useState<string | null>(null);
@@ -71,9 +69,7 @@ const App: React.FC = () => {
     // Channel 1: Silent context updates (every 4 seconds)
     const handleContextUpdate = useCallback((context: any) => {
         if (!isVoiceActiveRef.current) return;
-
         try {
-            // Send contextual update to agent (agent absorbs but doesn't respond)
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const conv = conversation as any;
             if (conv.sendContextualUpdate) {
@@ -89,28 +85,22 @@ const App: React.FC = () => {
     // Channel 2: Typing pause triggers code review
     const handleTypingPause = useCallback((context: any) => {
         if (!isVoiceActiveRef.current) return;
-
         try {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const conv = conversation as any;
             if (conv.sendUserMessage) {
-                // Build a code review request
                 const reviewMessage = `[CODE_REVIEW] I just paused typing. Here's my current code around line ${context.cursorLine}:
-
 \`\`\`${context.language}
 ${context.surroundingCode}
 \`\`\`
-
 Recent changes: ${context.recentChanges.join(', ') || 'none'}
 File: ${context.fileName}
 Mode: ${context.mode}
-
-Please briefly review and respond. If it looks fine, just say "looks good" or similar. If there's an issue, explain it concisely.`;
+Please briefly review and respond.`;
 
                 conv.sendUserMessage(reviewMessage);
                 setMonitoringStatus('🔍 Reviewing...');
 
-                // Add to transcript
                 setTranscript((prev) => [
                     ...prev,
                     {
@@ -125,7 +115,7 @@ Please briefly review and respond. If it looks fine, just say "looks good" or si
         }
     }, [conversation]);
 
-    // Code monitor hook - Channel 1 & 2
+    // Code monitor hook
     const { isConnected: isExtensionConnected, isTyping, secondsSinceLastChange } = useCodeMonitor({
         pollInterval: 4000,
         pauseThreshold: 5,
@@ -134,9 +124,8 @@ Please briefly review and respond. If it looks fine, just say "looks good" or si
         enabled: isVoiceActiveRef.current && agentConfigured,
     });
 
-    // Extension status hook - Poll status independently for immediate feedback
+    // Extension status hook
     const extensionStatus = useExtensionStatus();
-    // Use extension status for initial connection indicator, fall back to code monitor once voice is active
     const extensionConnectionStatus = extensionStatus.isConnected || isExtensionConnected;
 
     // Start voice session
@@ -147,16 +136,12 @@ Please briefly review and respond. If it looks fine, just say "looks good" or si
         }
 
         try {
-            // Request microphone permission
             await navigator.mediaDevices.getUserMedia({ audio: true });
-
-            // Start the conversation session
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             await (conversation as any).startSession({
                 agentId: AGENT_ID,
                 clientTools,
             });
-
             setMonitoringStatus('🎤 Session started');
         } catch (error) {
             console.error('Failed to start conversation:', error);
@@ -194,152 +179,28 @@ Please briefly review and respond. If it looks fine, just say "looks good" or si
 
     const isVoiceActive = String(conversation.status) === 'connected';
 
-    // Styles
-    const containerStyle: React.CSSProperties = {
-        minHeight: '100vh',
-        backgroundColor: '#0d1117',
-        padding: '40px 20px',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-    };
-
-    const headerStyle: React.CSSProperties = {
-        textAlign: 'center',
-        marginBottom: '30px',
-    };
-
-    const titleStyle: React.CSSProperties = {
-        fontSize: '32px',
-        fontWeight: 700,
-        color: '#e6edf3',
-        marginBottom: '8px',
-        background: 'linear-gradient(135deg, #58a6ff, #3fb950)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        backgroundClip: 'text',
-    };
-
-    const subtitleStyle: React.CSSProperties = {
-        fontSize: '16px',
-        color: '#8b949e',
-    };
-
-    const mainContentStyle: React.CSSProperties = {
-        width: '100%',
-        maxWidth: '500px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '24px',
-    };
-
-    const controlsStyle: React.CSSProperties = {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '20px',
-        padding: '30px',
-        backgroundColor: '#161b22',
-        borderRadius: '16px',
-        border: '1px solid #30363d',
-    };
-
-    const warningStyle: React.CSSProperties = {
-        backgroundColor: 'rgba(210, 153, 34, 0.1)',
-        border: '1px solid #d29922',
-        borderRadius: '8px',
-        padding: '12px 16px',
-        color: '#d29922',
-        fontSize: '14px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-    };
-
-    const statusRowStyle: React.CSSProperties = {
-        display: 'flex',
-        gap: '16px',
-        fontSize: '12px',
-        color: '#8b949e',
-        justifyContent: 'center',
-    };
-
-    const monitorBadgeStyle: React.CSSProperties = {
-        padding: '4px 12px',
-        backgroundColor: isTyping ? 'rgba(88, 166, 255, 0.2)' : 'rgba(63, 185, 80, 0.2)',
-        borderRadius: '12px',
-        color: isTyping ? '#58a6ff' : '#3fb950',
-        fontSize: '11px',
-        fontWeight: 600,
-    };
-
     return (
-        <div style={containerStyle}>
-            <header style={headerStyle}>
-                <h1 style={titleStyle}>CodeBud</h1>
-                <p style={subtitleStyle}>AI Voice Pair Programmer</p>
-            </header>
-
-            <main style={mainContentStyle}>
-                <StatusBar
-                    isExtensionConnected={extensionConnectionStatus}
+        <DashboardLayout currentTab={currentTab} onTabChange={setCurrentTab}>
+            {currentTab === 'live' ? (
+                <LiveSession
+                    mode={mode}
+                    onModeToggle={handleModeToggle}
+                    extensionConnected={extensionConnectionStatus}
                     voiceStatus={getVoiceStatus()}
+                    isVoiceActive={isVoiceActive}
                     agentConfigured={agentConfigured}
+                    startConversation={startConversation}
+                    stopConversation={stopConversation}
+                    isSpeaking={conversation.isSpeaking}
+                    monitoringStatus={monitoringStatus}
+                    secondsSinceLastChange={secondsSinceLastChange}
+                    lastToolCalled={lastToolCalled}
+                    transcript={transcript}
                 />
-
-                {!agentConfigured && (
-                    <div style={warningStyle}>
-                        <span>⚠️</span>
-                        <span>
-                            Agent not configured. Set VITE_ELEVENLABS_AGENT_ID in .env
-                        </span>
-                    </div>
-                )}
-
-                {!extensionConnectionStatus && (
-                    <div style={warningStyle}>
-                        <span>⚠️</span>
-                        <span>
-                            VS Code extension not detected. Press F5 in the extension folder.
-                        </span>
-                    </div>
-                )}
-
-                <div style={controlsStyle}>
-                    <ModeToggle
-                        mode={mode}
-                        onToggle={handleModeToggle}
-                        disabled={!extensionConnectionStatus}
-                    />
-
-                    <VoiceButton
-                        isConnected={getVoiceStatus() === 'connected'}
-                        isActive={isVoiceActive}
-                        onStart={startConversation}
-                        onStop={stopConversation}
-                        disabled={!agentConfigured}
-                    />
-
-                    <SpeakingIndicator isSpeaking={conversation.isSpeaking} />
-
-                    {/* Monitoring status */}
-                    <div style={statusRowStyle}>
-                        <span style={monitorBadgeStyle}>{monitoringStatus}</span>
-                        {secondsSinceLastChange >= 0 && (
-                            <span>Last change: {secondsSinceLastChange}s ago</span>
-                        )}
-                    </div>
-
-                    {lastToolCalled && (
-                        <div style={{ fontSize: '12px', color: '#8b949e' }}>
-                            Last tool: <strong>{lastToolCalled}</strong>
-                        </div>
-                    )}
-                </div>
-
-                <Transcript entries={transcript} />
-            </main>
-        </div>
+            ) : (
+                <InsightsPanel transcript={transcript} />
+            )}
+        </DashboardLayout>
     );
 };
 
